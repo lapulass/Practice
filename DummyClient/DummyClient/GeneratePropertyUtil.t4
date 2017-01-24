@@ -1,0 +1,94 @@
+<#
+	var files = Directory.GetFiles(folderPath, "*.xml", SearchOption.TopDirectoryOnly);
+	foreach( string file in files ) {
+		IESTableManager.Parse(file);
+	}
+	var columns = IESTableManager
+		.Tables
+		.Select(p=>p.Value)
+		.SelectMany(t=>t.Columns().Select(c=>new {Name=c, Validator=t.DeduceValidator(c)}));
+#>
+namespace <#=myNamespace#> {
+	using IES;
+
+	public static class PropertyUtil {
+<#foreach( var c in DistinctBy(columns, c=>c.Name).Where(a=>a.Validator.type == ValidatorType.Symbol) ){#>
+		public enum <#=c.Name#>Symbol {
+<#c.Validator.ValidSet().ToList().ForEach(v => WriteLine("			@{0},", v));#>
+		}
+<#}#>
+
+<#foreach( var c in DistinctBy(columns, c=>c.Name) ){
+	if( c.Validator.type == ValidatorType.Any ){#>
+		public static IESProperty Get<#=c.Name#> ( this IESObject ies ){
+			IESProperty prop;
+			ies.TryGetMember("<#=c.Name#>", out prop);
+			return prop;
+		}
+		public static void Set<#=c.Name#> ( this IESObject ies, IESProperty val ){
+			ies.Set("<#=c.Name#>", val);
+		}
+		public static IESProperty Get<#=c.Name#> ( this IMessageTarget mt ){
+			IESProperty prop;
+			mt.IES.TryGetMember("<#=c.Name#>", out prop);
+			return prop;
+		}
+		public static void Set<#=c.Name#> ( this IMessageTarget mt, IESProperty val ){
+			mt.IES.Set("<#=c.Name#>", val);
+		}
+<#} else if ( c.Validator.type == ValidatorType.Symbol ){#>
+		public static string Get<#=c.Name#> ( this IESObject ies ){
+			return ies.GetString("<#=c.Name#>");
+		}
+		public static void Set<#=c.Name#> ( this IESObject ies, <#=c.Name#>Symbol val ){
+			ies.Set("<#=c.Name#>", val.ToString());
+		}
+		public static string Get<#=c.Name#> ( this IMessageTarget mt ){
+			return mt.GetString("<#=c.Name#>");
+		}
+		public static void Set<#=c.Name#> ( this IMessageTarget mt, <#=c.Name#>Symbol val ){
+			mt.Set("<#=c.Name#>", val.ToString());
+		}
+<#} else if ( c.Validator.type == ValidatorType.Number ){#>
+		public static double Get<#=c.Name#> ( this IESObject ies ){
+			return ies.Get("<#=c.Name#>");
+		}
+		public static void Set<#=c.Name#> ( this IESObject ies, double val ){
+			ies.Set("<#=c.Name#>", val);
+		}
+		public static double Get<#=c.Name#>Int ( this IESObject ies ){
+			return ies.GetInt("<#=c.Name#>");
+		}
+		public static void Set<#=c.Name#> ( this IESObject ies, int val ){
+			ies.Set("<#=c.Name#>", val);
+		}
+		public static double Get<#=c.Name#> ( this IMessageTarget mt ){
+			return mt.Get("<#=c.Name#>");
+		}
+		public static void Set<#=c.Name#> ( this IMessageTarget mt, double val ){
+			mt.Set("<#=c.Name#>", val);
+		}
+		public static double Get<#=c.Name#>Int ( this IMessageTarget mt ){
+			return mt.GetInt("<#=c.Name#>");
+		}
+		public static void Set<#=c.Name#> ( this IMessageTarget mt, int val ){
+			mt.Set("<#=c.Name#>", val);
+		}
+<#	}
+}#>
+	}
+}
+<#+
+public static IEnumerable<TSource> DistinctBy<TSource, TKey>
+	(IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+{
+	HashSet<TKey> seenKeys = new HashSet<TKey>();
+	foreach (TSource element in source)
+	{
+		if (seenKeys.Add(keySelector(element)))
+		{
+			yield return element;
+		}
+	}
+}
+#>

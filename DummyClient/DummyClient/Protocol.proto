@@ -1,0 +1,25 @@
+package Packet.Message;
+
+message PKS_CZ_ENTER_WORLD
+{	
+	required string account_id = 1;
+	repeated int32 character_slot = 2;
+	optional int32 zone_id = 3 [default = -1];
+	optional float posX = 4 [default = -999999];
+	optional float posY = 5 [default = -999999];
+}
+
+message PKS_ZC_ENTER_WORLD
+{
+	enum RESULT
+	{
+		SUCCESS = 0;
+		FAIL_NO_CHARACTER = 1;
+		FAIL_NO_ZONE = 2;
+	}
+	required int32 id = 1;							//	pc의 handle
+	required PKS_ZC_INVENTORY_EQUIP equipSlot = 2;	//	장착 아이템 정보
+	required int32 zoneId = 4;						//	zone id
+
+	required RESULT result = 5;
+}
